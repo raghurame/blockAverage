@@ -185,10 +185,6 @@ BLOCKS *computeBlockAverages (BLOCKS *blockAverages, int nLines, float *inputDat
 		blockAverages[i].covariance /= (float)(floor (nLines / (i + 1)) - 1);
 		blockAverages[i].stdev = sqrt (blockAverages[i].covariance);
 		blockAverages[i].stderr = blockAverages[i].stdev / sqrt ((float)((floor (nLines / (i + 1)))));
-
-/*		fprintf(stdout, "%d %f %f %f\n", i + 1, blockAverages[i].average, blockAverages[i].stdev, blockAverages[i].stderr);
-		fflush (stdout);
-*/
 	}
 
 	return blockAverages;
@@ -219,7 +215,7 @@ void printBlockAverageStats (FILE *file_output, BLOCKS *blockAverages, int nLine
 int findOptimumBlock (BLOCKS *blockAverages, int nLines)
 {
 	int firstInstance = 0;
-	int nInstances = (int)(floor ((float)nLines * (-0.1)));
+	int nInstances = (int)(ceil ((float)nLines * (-0.1)));
 
 	for (int i = 1; i < floor (nLines / 2); ++i)
 	{
