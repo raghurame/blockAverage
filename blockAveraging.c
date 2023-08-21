@@ -198,7 +198,7 @@ float *saveInputData (float *inputData, int nLines, FILE *file_data)
 	for (int i = 0; i < nLines; ++i)
 	{
 		fgets (lineString, 2000, file_data);
-		sscanf (lineString, "%*f %f\n", &inputData[i]);
+		sscanf (lineString, "%f\n", &inputData[i]);
 	}
 
 	return inputData;
@@ -215,7 +215,7 @@ void printBlockAverageStats (FILE *file_output, BLOCKS *blockAverages, int nLine
 int findOptimumBlock (BLOCKS *blockAverages, int nLines)
 {
 	int firstInstance = 0;
-	int nInstances = (int)(ceil ((float)nLines * (-0.1)));
+	int nInstances = (int)(ceil ((float)nLines * (-0.3)));
 
 	for (int i = 1; i < floor (nLines / 2); ++i)
 	{
