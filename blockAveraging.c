@@ -198,7 +198,7 @@ float *saveInputData (float *inputData, int nLines, FILE *file_data)
 	for (int i = 0; i < nLines; ++i)
 	{
 		fgets (lineString, 2000, file_data);
-		sscanf (lineString, "%f\n", &inputData[i]);
+		sscanf (lineString, "%*f %f\n", &inputData[i]);
 	}
 
 	return inputData;
