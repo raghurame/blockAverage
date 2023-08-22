@@ -99,12 +99,19 @@ int main(int argc, char const *argv[])
 	correlation = resetCorrelation (correlation, nInputs);
 	correlation = computeCorrelation (correlation, inputs, nInputs);
 
+	char *outputFilename;
+	outputFilename = (char *) malloc (1000 * sizeof (char));
+
+	snprintf (outputFilename, 1000, "%s.corr", argv[1]);
+	FILE *file_output;
+	file_output = fopen (outputFilename, "w");
+
 	for (int i = 0; i < nInputs; ++i)
 	{
-		printf("%f\n", inputs[i].i / inputs[0].i);
-		usleep (100000);
+		fprintf(file_output, "%f\n", inputs[i].i / inputs[0].i);
 	}
 
 	fclose (file_input);
+	fclose (file_output);
 	return 0;
 }
