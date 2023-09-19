@@ -7,7 +7,7 @@
 
 typedef struct inputData
 {
-	float i;
+	long double i;
 } INPUT_DATA;
 
 int countNLines (FILE *file_input, int nInputs)
@@ -37,7 +37,7 @@ INPUT_DATA *storeInputs (FILE *file_input, int nInputs, INPUT_DATA *inputs)
 	{
 		if (lineString[0] != '#')
 		{
-			sscanf (lineString, "%*d %f\n", &inputs[currentIndex].i);
+			sscanf (lineString, "%*d %Lf\n", &inputs[currentIndex].i);
 			currentIndex++;
 		}
 	}
@@ -54,7 +54,7 @@ INPUT_DATA *resetCorrelation (INPUT_DATA *correlation, int nInputs)
 	return correlation;
 }
 
-INPUT_DATA *computeCorrelation (INPUT_DATA *correlation, INPUT_DATA *inputs, int nInputs)
+INPUT_DATA *computeCorrelation (INPUT_DATA *correlation, INPUT_DATA *inputs, int nInputs, float mean)
 {
 	int lag;
 	int *nDenominator;
@@ -67,21 +67,44 @@ INPUT_DATA *computeCorrelation (INPUT_DATA *correlation, INPUT_DATA *inputs, int
 	{
 		for (int j = i; j < nInputs; ++j)
 		{
-			if (i != j)
+			if (1)
 			{
 				lag = j - i;
-				correlation[lag].i += inputs[i].i * inputs[j].i;
-				// printf("%d %d (%f x %f) = %f [lag: %d]\n", i, j, inputs[i].i, inputs[j].i, inputs[i].i * inputs[j].i, j - i);
-				// usleep (100000);
+				correlation[lag].i += ((inputs[i].i - mean) * (inputs[j].i - mean));
 				nDenominator[lag]++;
 			}
 		}
 	}
 
+	long double *normalizingFactor;
+	normalizingFactor = (long double *) malloc (nInputs * sizeof (long double));
+
+	for (int i = 0; i < nInputs; ++i)
+	{
+		normalizingFactor[i] = (long double)nDenominator[i];
+	}
+
 	for (int i = 0; i < nInputs; ++i) {
-		correlation[lag].i /= nDenominator[i]; }
+		correlation[i].i /= normalizingFactor[i];
+		correlation[i].i *= 1000000;
+	}
 
 	return correlation;
+}
+
+float computeMean (long double mean, INPUT_DATA *inputs, int nInputs)
+{
+	mean = 0;
+
+	for (int i = 0; i < nInputs; ++i)
+	{
+		mean += inputs[i].i;
+	}
+
+	mean /= (long double)nInputs;
+	printf("Mean of the input sample: %Lf\n", mean);
+
+	return mean;
 }
 
 int main(int argc, char const *argv[])
@@ -97,7 +120,11 @@ int main(int argc, char const *argv[])
 
 	inputs = storeInputs (file_input, nInputs, inputs);
 	correlation = resetCorrelation (correlation, nInputs);
-	correlation = computeCorrelation (correlation, inputs, nInputs);
+
+	long double mean;
+	mean = computeMean (mean, inputs, nInputs);
+
+	correlation = computeCorrelation (correlation, inputs, nInputs, mean);
 
 	char *outputFilename;
 	outputFilename = (char *) malloc (1000 * sizeof (char));
@@ -106,9 +133,13 @@ int main(int argc, char const *argv[])
 	FILE *file_output;
 	file_output = fopen (outputFilename, "w");
 
+	long double normalizingFactor;
+	normalizingFactor = correlation[0].i;
+
 	for (int i = 0; i < nInputs; ++i)
 	{
-		fprintf(file_output, "%f\n", inputs[i].i / inputs[0].i);
+		correlation[i].i /= normalizingFactor;
+		fprintf(file_output, "%Lf\n", correlation[i].i);
 	}
 
 	fclose (file_input);
