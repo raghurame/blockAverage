@@ -139,7 +139,7 @@ int main(int argc, char const *argv[])
 	for (int i = 0; i < nInputs; ++i)
 	{
 		correlation[i].i /= normalizingFactor;
-		fprintf(file_output, "%Lf\n", correlation[i].i);
+		fprintf(file_output, "%d %Lf\n", i + 1, correlation[i].i);
 	}
 
 	fclose (file_input);

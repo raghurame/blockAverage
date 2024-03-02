@@ -10,6 +10,7 @@ typedef struct blocks
 {
 	int size;
 	float average, covariance, stdev, stderr;
+	float squaredAverage, averageSquare;
 } BLOCKS;
 
 int countNLines (const char filename[], int nLines)
@@ -255,13 +256,7 @@ BLOCKS *computeBlockAverages2 (BLOCKS *blockAverages, int nLines, float *inputDa
 				{
 					covariance[j] += ((inputData[currentEntry] - blocks[j]) * (inputData[currentEntry] - blocks[j]));
 					denomVariance++;
-
-/*					if (i > 100)
-					{
-						printf("%f - %f (%d) = %f\n", inputData[currentEntry], blocks[j], currentEntry, covariance[j]);
-						usleep (100000);
-					}
-*/				}
+				}
 				currentEntry++;
 			}
 
@@ -279,8 +274,8 @@ BLOCKS *computeBlockAverages2 (BLOCKS *blockAverages, int nLines, float *inputDa
 
 		blockAverages[i].covariance /= floor (nLines / (i + 1));
 
-		blockAverages[i].average = 0;
 		// find the global average across blocks
+		blockAverages[i].average = 0;
 		for (int j = 0; j < floor (nLines / (i + 1)); ++j)
 		{
 			if (blocks[j] == -9999)
@@ -316,7 +311,7 @@ float *saveInputData (float *inputData, int nLines, FILE *file_data)
 	for (int i = 0; i < nLines; ++i)
 	{
 		fgets (lineString, 2000, file_data);
-		sscanf (lineString, "%*f %f\n", &inputData[i]);
+		sscanf (lineString, "%f\n", &inputData[i]);
 	}
 
 	return inputData;
@@ -326,7 +321,7 @@ void printBlockAverageStats (FILE *file_output, BLOCKS *blockAverages, int nLine
 {
 	for (int i = 0; i < floor (nLines / 2); ++i)
 	{
-		fprintf(file_output, "%d %f %f %f %f\n", i + 1, blockAverages[i].average, blockAverages[i].stdev, blockAverages[i].covariance, blockAverages[i].stderr);
+		fprintf(file_output, "%d %f %f %f %f\n", i + 1, blockAverages[i].average, blockAverages[i].stdev, blockAverages[i].covariance*100000, blockAverages[i].stderr);
 	}
 }
 
