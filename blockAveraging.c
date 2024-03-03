@@ -26,6 +26,24 @@ int countNLines (const char filename[], int nLines)
 	return nLines;
 }
 
+int countNLines2 (const char filename[], int nLines)
+{
+        FILE *inputFile;
+        inputFile = fopen (filename, "r");
+
+        char lineString[3000];
+        nLines = 0;
+
+        while ((fgets (lineString, 3000, inputFile) != NULL))
+        {
+                if (lineString[0] != '#')
+                        nLines++;
+        }
+
+        fclose (inputFile);
+        return nLines;
+}
+
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // TRY TO FIX THESE FUNCTIONS
 // CURRENTLY THEY ARE GIVING SEGMENTATION FAULT
@@ -303,7 +321,7 @@ BLOCKS *computeBlockAverages2 (BLOCKS *blockAverages, int nLines, float *inputDa
 	return blockAverages;
 }
 
-float *saveInputData (float *inputData, int nLines, FILE *file_data)
+float *saveInputData (float *inputData, int nLines, FILE *file_data, int requiredColumn)
 {
 	char lineString[2000];
 	rewind (file_data);
@@ -311,7 +329,30 @@ float *saveInputData (float *inputData, int nLines, FILE *file_data)
 	for (int i = 0; i < nLines; ++i)
 	{
 		fgets (lineString, 2000, file_data);
-		sscanf (lineString, "%f\n", &inputData[i]);
+
+		switch (requiredColumn)
+		{
+			case 1: sscanf (lineString, "%f\n", &inputData[i]); break;
+			case 2: sscanf (lineString, "%*f %f\n", &inputData[i]); break;
+			case 3: sscanf (lineString, "%*f %*f %f\n", &inputData[i]); break;
+			case 4: sscanf (lineString, "%*f %*f %*f %f\n", &inputData[i]); break;
+			case 5: sscanf (lineString, "%*f %*f %*f %*f %f\n", &inputData[i]); break;
+			case 6: sscanf (lineString, "%*f %*f %*f %*f %*f %f\n", &inputData[i]); break;
+			case 7: sscanf (lineString, "%*f %*f %*f %*f %*f %*f %f\n", &inputData[i]); break;
+			case 8: sscanf (lineString, "%*f %*f %*f %*f %*f %*f %*f %f\n", &inputData[i]); break;
+			case 9: sscanf (lineString, "%*f %*f %*f %*f %*f %*f %*f %*f %f\n", &inputData[i]); break;
+			case 10: sscanf (lineString, "%*f %*f %*f %*f %*f %*f %*f %*f %*f %f\n", &inputData[i]); break;
+			case 11: sscanf (lineString, "%*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %f\n", &inputData[i]); break;
+			case 12: sscanf (lineString, "%*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %f\n", &inputData[i]); break;
+			case 13: sscanf (lineString, "%*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %f\n", &inputData[i]); break;
+			case 14: sscanf (lineString, "%*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %f\n", &inputData[i]); break;
+			case 15: sscanf (lineString, "%*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %f\n", &inputData[i]); break;
+			case 16: sscanf (lineString, "%*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %f\n", &inputData[i]); break;
+			case 17: sscanf (lineString, "%*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %f\n", &inputData[i]); break;
+			case 18: sscanf (lineString, "%*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %f\n", &inputData[i]); break;
+			case 19: sscanf (lineString, "%*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %f\n", &inputData[i]); break;
+			case 20: sscanf (lineString, "%*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %f\n", &inputData[i]); break;
+		}
 	}
 
 	return inputData;
@@ -357,7 +398,7 @@ int main(int argc, char const *argv[])
 	int nLines = countNLines (argv[1], nLines), requiredColumn = atoi (argv[2]);
 	float *inputData;
 	inputData = (float *) malloc (nLines * sizeof (float));
-	inputData = saveInputData (inputData, nLines, file_data);
+	inputData = saveInputData (inputData, nLines, file_data, requiredColumn);
 
 	BLOCKS *blockAverages, *blockAverages2;
 	blockAverages = (BLOCKS *) malloc (nLines * sizeof (BLOCKS));
