@@ -390,12 +390,25 @@ int findOptimumBlock (BLOCKS *blockAverages, int nLines)
 
 int main(int argc, char const *argv[])
 {
+	if (argc != 4)
+	{
+		printf("\nINCORRECT ARGUMENTS PASSED:\n~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\nRequired arguments are,\n\n\t{~} argv[0] = program\n\t{~} argv[1] = input file containing data\n\t{~} argv[2] = required column\n\t{~} argv[3] = Number of data points to consider\n\n");
+		exit (1);
+	}
+
 	FILE *file_data, *file_output, *file_output2;
 	file_data = fopen (argv[1], "r");
-	file_output = fopen ("average.block", "w");
-	file_output2 = fopen ("average2.block", "w");
 
-	int nLines = countNLines (argv[1], nLines), requiredColumn = atoi (argv[2]);
+	int nLines = countNLines (argv[1], nLines), requiredColumn = atoi (argv[2]), nDataPoints = atoi (argv[3]);
+
+	char *outputFileString;
+	outputFileString = (char *) malloc (500 * sizeof (char));
+
+	snprintf (outputFileString, 500, "average_n%d_1.block", nDataPoints);
+	file_output = fopen (outputFileString, "w");
+	snprintf (outputFileString, 500, "average_n%d_2.block", nDataPoints);
+	file_output2 = fopen (outputFileString, "w");
+
 	float *inputData;
 	inputData = (float *) malloc (nLines * sizeof (float));
 	inputData = saveInputData (inputData, nLines, file_data, requiredColumn);
