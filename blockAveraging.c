@@ -13,6 +13,12 @@ typedef struct blocks
 	float squaredAverage, averageSquare;
 } BLOCKS;
 
+typedef struct boundary
+{
+	float low, high;
+	int count;
+} BOUNDARY;
+
 int countNLines (const char filename[], int nLines)
 {
 	FILE *countingLines;
@@ -209,25 +215,71 @@ BLOCKS *computeBlockAverages (BLOCKS *blockAverages, int nLines, float *inputDat
 	return blockAverages;
 }
 
-void printBlockDistribution (float *blocks, int nBlocks, int blockSize)
+void printBlockDistribution (float *blocks, int nBlocks, int blockSize, int nBins)
 {
-	float min, max;
-	int nBins = 20; // default as 20.
+	float min, max, binWidth;
+	// int nBins = 10; // default as 20.
+	BOUNDARY *bin;
+	bin = (BOUNDARY *) malloc (nBins * sizeof (BOUNDARY));
 
 	char *distFileString;
 	distFileString = (char *) malloc (500 * sizeof (char));
-	snprintf (distFileString, "size_%d.dist", blockSize);
+	snprintf (distFileString, 500, "blockDistributions/size_%d.dist", blockSize);
 
 	FILE *output;
 	output = fopen (distFileString, "w");
 
 	// calculating the min and max
+	for (int i = 0; i < nBlocks; ++i)
+	{
+		if (i == 0) {
+			min = blocks[i];
+			max = blocks[i]; }
+		else {
+			if (blocks[i] < min) {
+				min = blocks[i]; }
+			else if (blocks[i] > max) {
+				max = blocks[i]; }
+		}
+	}
+
+	binWidth = (max - min) / (float)nBins;
+
+	// assigning lows and highs in boundary
+	for (int i = 0; i < nBins; ++i)
+	{
+		if (i == 0) {
+			bin[i].low = min;
+			bin[i].high = bin[i].low + binWidth; }
+		else {
+			bin[i].low = bin[i - 1].high;
+			bin[i].high = bin[i].low + binWidth; }
+
+		bin[i].count = 0;
+	}
+
+	// calculating distribution
+	for (int i = 0; i < nBlocks; ++i)
+	{
+		for (int j = 0; j < nBins; ++j)
+		{
+			if (blocks[i] < bin[j].high && blocks[i] > bin[j].low)
+			{
+				bin[j].count++;
+			}
+		}
+	}
+
+	for (int i = 0; i < nBins; ++i)
+	{
+		fprintf(output, "%f %f %d\n", bin[i].low, bin[i].high, bin[i].count);
+	}
 
 	free (distFileString);
 	fclose (output);
 }
 
-BLOCKS *computeBlockAverages2 (BLOCKS *blockAverages, int nLines, float *inputData)
+BLOCKS *computeBlockAverages2 (BLOCKS *blockAverages, int nLines, float *inputData, int nBins_distribution)
 {
 	int currentEntry = 0, nEntries = 0;
 	float *blocks;
@@ -283,7 +335,7 @@ BLOCKS *computeBlockAverages2 (BLOCKS *blockAverages, int nLines, float *inputDa
 			// usleep (100000);
 		}
 
-		printBlockDistribution (blocks, floor (nLines / (i + 1)), i + 1);
+		printBlockDistribution (blocks, floor (nLines / (i + 1)), i + 1, nBins_distribution);
 
 		// find the local covariance within the blocks
 		currentEntry = 0;
@@ -418,16 +470,19 @@ int findOptimumBlock (BLOCKS *blockAverages, int nLines)
 
 int main(int argc, char const *argv[])
 {
-	if (argc != 4)
+	if (argc != 5)
 	{
-		printf("\nINCORRECT ARGUMENTS PASSED:\n~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\nRequired arguments are,\n\n\t{~} argv[0] = program\n\t{~} argv[1] = input file containing data\n\t{~} argv[2] = required column\n\t{~} argv[3] = Number of data points to consider\n\n");
+		printf("\nINCORRECT ARGUMENTS PASSED:\n~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\nRequired arguments are,\n\n\t{~} argv[0] = program\n\t{~} argv[1] = input file containing data\n\t{~} argv[2] = required column\n\t{~} argv[3] = Number of data points to consider\n\t{~} argv[4] = Number of bins in the distribution files.\n\n");
 		exit (1);
 	}
+
+	system ("rm -rf blockDistributions");
+	system ("mkdir blockDistributions");
 
 	FILE *file_data, *file_output, *file_output2;
 	file_data = fopen (argv[1], "r");
 
-	int nLines = countNLines (argv[1], nLines), requiredColumn = atoi (argv[2]), nDataPoints = atoi (argv[3]);
+	int nLines = countNLines (argv[1], nLines), requiredColumn = atoi (argv[2]), nDataPoints = atoi (argv[3]), nBins_distribution = atoi (argv[4]);
 
 	char *outputFileString;
 	outputFileString = (char *) malloc (500 * sizeof (char));
@@ -453,7 +508,7 @@ int main(int argc, char const *argv[])
 
 	blockAverages = initializeBlocks (blockAverages, nLines);
 	blockAverages = computeBlockAverages (blockAverages, nLines, inputData);
-	blockAverages2 = computeBlockAverages2 (blockAverages2, nLines, inputData);
+	blockAverages2 = computeBlockAverages2 (blockAverages2, nLines, inputData, nBins_distribution);
 
 	printBlockAverageStats (file_output, blockAverages, nLines);
 	printBlockAverageStats (file_output2, blockAverages2, nLines);
