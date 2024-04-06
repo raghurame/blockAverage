@@ -209,6 +209,24 @@ BLOCKS *computeBlockAverages (BLOCKS *blockAverages, int nLines, float *inputDat
 	return blockAverages;
 }
 
+void printBlockDistribution (float *blocks, int nBlocks, int blockSize)
+{
+	float min, max;
+	int nBins = 20; // default as 20.
+
+	char *distFileString;
+	distFileString = (char *) malloc (500 * sizeof (char));
+	snprintf (distFileString, "size_%d.dist", blockSize);
+
+	FILE *output;
+	output = fopen (distFileString, "w");
+
+	// calculating the min and max
+
+	free (distFileString);
+	fclose (output);
+}
+
 BLOCKS *computeBlockAverages2 (BLOCKS *blockAverages, int nLines, float *inputData)
 {
 	int currentEntry = 0, nEntries = 0;
@@ -259,7 +277,13 @@ BLOCKS *computeBlockAverages2 (BLOCKS *blockAverages, int nLines, float *inputDa
 		for (int j = 0; j < floor (nLines / (i + 1)); ++j)
 		{
 			blocks[j] /= (i + 1);
+
+			// testing
+			// printf("%d %f\n", i + 1, blocks[j]);
+			// usleep (100000);
 		}
+
+		printBlockDistribution (blocks, floor (nLines / (i + 1)), i + 1);
 
 		// find the local covariance within the blocks
 		currentEntry = 0;
@@ -281,6 +305,7 @@ BLOCKS *computeBlockAverages2 (BLOCKS *blockAverages, int nLines, float *inputDa
 			covariance[j] /= denomVariance;
 		}
 
+		blockAverages[i].covariance = 0;
 		// find the average covariance
 		for (int j = 0; j < floor (nLines / (i + 1)); ++j)
 		{
@@ -330,28 +355,31 @@ float *saveInputData (float *inputData, int nLines, FILE *file_data, int require
 	{
 		fgets (lineString, 2000, file_data);
 
-		switch (requiredColumn)
+		if (lineString[0] != '#')
 		{
-			case 1: sscanf (lineString, "%f\n", &inputData[i]); break;
-			case 2: sscanf (lineString, "%*f %f\n", &inputData[i]); break;
-			case 3: sscanf (lineString, "%*f %*f %f\n", &inputData[i]); break;
-			case 4: sscanf (lineString, "%*f %*f %*f %f\n", &inputData[i]); break;
-			case 5: sscanf (lineString, "%*f %*f %*f %*f %f\n", &inputData[i]); break;
-			case 6: sscanf (lineString, "%*f %*f %*f %*f %*f %f\n", &inputData[i]); break;
-			case 7: sscanf (lineString, "%*f %*f %*f %*f %*f %*f %f\n", &inputData[i]); break;
-			case 8: sscanf (lineString, "%*f %*f %*f %*f %*f %*f %*f %f\n", &inputData[i]); break;
-			case 9: sscanf (lineString, "%*f %*f %*f %*f %*f %*f %*f %*f %f\n", &inputData[i]); break;
-			case 10: sscanf (lineString, "%*f %*f %*f %*f %*f %*f %*f %*f %*f %f\n", &inputData[i]); break;
-			case 11: sscanf (lineString, "%*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %f\n", &inputData[i]); break;
-			case 12: sscanf (lineString, "%*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %f\n", &inputData[i]); break;
-			case 13: sscanf (lineString, "%*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %f\n", &inputData[i]); break;
-			case 14: sscanf (lineString, "%*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %f\n", &inputData[i]); break;
-			case 15: sscanf (lineString, "%*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %f\n", &inputData[i]); break;
-			case 16: sscanf (lineString, "%*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %f\n", &inputData[i]); break;
-			case 17: sscanf (lineString, "%*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %f\n", &inputData[i]); break;
-			case 18: sscanf (lineString, "%*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %f\n", &inputData[i]); break;
-			case 19: sscanf (lineString, "%*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %f\n", &inputData[i]); break;
-			case 20: sscanf (lineString, "%*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %f\n", &inputData[i]); break;
+			switch (requiredColumn)
+			{
+				case 1: sscanf (lineString, "%f\n", &inputData[i]); break;
+				case 2: sscanf (lineString, "%*f %f\n", &inputData[i]); break;
+				case 3: sscanf (lineString, "%*f %*f %f\n", &inputData[i]); break;
+				case 4: sscanf (lineString, "%*f %*f %*f %f\n", &inputData[i]); break;
+				case 5: sscanf (lineString, "%*f %*f %*f %*f %f\n", &inputData[i]); break;
+				case 6: sscanf (lineString, "%*f %*f %*f %*f %*f %f\n", &inputData[i]); break;
+				case 7: sscanf (lineString, "%*f %*f %*f %*f %*f %*f %f\n", &inputData[i]); break;
+				case 8: sscanf (lineString, "%*f %*f %*f %*f %*f %*f %*f %f\n", &inputData[i]); break;
+				case 9: sscanf (lineString, "%*f %*f %*f %*f %*f %*f %*f %*f %f\n", &inputData[i]); break;
+				case 10: sscanf (lineString, "%*f %*f %*f %*f %*f %*f %*f %*f %*f %f\n", &inputData[i]); break;
+				case 11: sscanf (lineString, "%*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %f\n", &inputData[i]); break;
+				case 12: sscanf (lineString, "%*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %f\n", &inputData[i]); break;
+				case 13: sscanf (lineString, "%*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %f\n", &inputData[i]); break;
+				case 14: sscanf (lineString, "%*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %f\n", &inputData[i]); break;
+				case 15: sscanf (lineString, "%*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %f\n", &inputData[i]); break;
+				case 16: sscanf (lineString, "%*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %f\n", &inputData[i]); break;
+				case 17: sscanf (lineString, "%*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %f\n", &inputData[i]); break;
+				case 18: sscanf (lineString, "%*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %f\n", &inputData[i]); break;
+				case 19: sscanf (lineString, "%*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %f\n", &inputData[i]); break;
+				case 20: sscanf (lineString, "%*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %f\n", &inputData[i]); break;
+			}
 		}
 	}
 
@@ -404,12 +432,18 @@ int main(int argc, char const *argv[])
 	char *outputFileString;
 	outputFileString = (char *) malloc (500 * sizeof (char));
 
-	snprintf (outputFileString, 500, "average_n%d_1.block", nDataPoints);
+	snprintf (outputFileString, 500, "average_n%d_c%d_1.block", nDataPoints, requiredColumn);
 	file_output = fopen (outputFileString, "w");
-	snprintf (outputFileString, 500, "average_n%d_2.block", nDataPoints);
+	snprintf (outputFileString, 500, "average_n%d_c%d_2.block", nDataPoints, requiredColumn);
 	file_output2 = fopen (outputFileString, "w");
 
 	float *inputData;
+
+	if (nDataPoints < nLines)
+	{
+		nLines = nDataPoints;
+	}
+
 	inputData = (float *) malloc (nLines * sizeof (float));
 	inputData = saveInputData (inputData, nLines, file_data, requiredColumn);
 
