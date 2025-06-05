@@ -9,13 +9,13 @@
 typedef struct blocks
 {
 	int size;
-	float average, covariance, stdev, stderr;
-	float squaredAverage, averageSquare;
+	double average, covariance, stdev, stderr;
+	double squaredAverage, averageSquare;
 } BLOCKS;
 
 typedef struct boundary
 {
-	float low, high;
+	double low, high;
 	int count;
 } BOUNDARY;
 
@@ -134,7 +134,7 @@ BLOCKS *initializeBlocks (BLOCKS *blockAverages, int nLines)
 	return blockAverages;
 }
 
-float *initializeBlockValues (float *blocks, int nLines)
+double *initializeBlockValues (double *blocks, int nLines)
 {
 	for (int i = 0; i < nLines; ++i)
 	{
@@ -144,13 +144,22 @@ float *initializeBlockValues (float *blocks, int nLines)
 	return blocks;
 }
 
-BLOCKS *computeBlockAverages (BLOCKS *blockAverages, int nLines, float *inputData)
+BLOCKS *computeBlockAverages (BLOCKS *blockAverages, int nLines, double *inputData)
 {
+	printf ("\nComputing averages 1...\n");
 	int currentEntry = 0, nEntries = 0;
-	float *blocks;
-	blocks = (float *) malloc (nLines * sizeof (blocks));
+	int nLines_temp = 0;
 
 	for (int i = 0; i < nLines; ++i)
+	{
+		if (inputData[i] > 0) {
+			nLines_temp++; }
+	}
+
+	double *blocks;
+	blocks = (double *) malloc (nLines_temp * sizeof (blocks));
+
+	for (int i = 0; i < nLines_temp; ++i)
 	{
 		if (inputData[i] > -9999) {
 			nEntries++; }
@@ -158,37 +167,42 @@ BLOCKS *computeBlockAverages (BLOCKS *blockAverages, int nLines, float *inputDat
 
 	// 'i' is to iterate through various block sizes
 	// 'i + 1' is the block size
-	for (int i = 0; i < floor (nLines / 2); ++i)
+	for (int i = 0; i < (int)floor (nLines_temp / 2); ++i)
 	{
-		blocks = initializeBlockValues (blocks, nLines);
+		printf ("computing for block %d/%d...                     \r", i, (int)floor (nLines_temp / 2));
+		blocks = initializeBlockValues (blocks, nLines_temp);
 		currentEntry = 0;
 
 		// going through the blocks
 		// summing the items in the blocks
-		// number of blocks = floor (nLines / (i + 1))
-		for (int j = 0; j < floor (nLines / (i + 1)); ++j)
+		// number of blocks = floor (nLines_temp / (i + 1))
+		for (int j = 0; j < floor (nLines_temp / (i + 1)); ++j)
 		{
 			// do averaging within the block
 			// (i + 1) is the block size
 			blocks[j] = 0;
 			for (int k = 0; k < (i + 1); ++k)
 			{
-				blocks[j] += inputData[currentEntry];
+				if (inputData[currentEntry] > 0)
+				{
+					blocks[j] += inputData[currentEntry];
+				}
+
 				currentEntry++;
 			}
 		}
 
 		// going through the blocks
 		// finding local averages of these blocks
-		// number of blocks = floor (nLines / (i + 1))
-		for (int j = 0; j < floor (nLines / (i + 1)); ++j)
+		// number of blocks = floor (nLines_temp / (i + 1))
+		for (int j = 0; j < floor (nLines_temp / (i + 1)); ++j)
 		{
 			blocks[j] /= (i + 1);
 		}
 
 		blockAverages[i].average = 0;
 		// find the global average across blocks
-		for (int j = 0; j < floor (nLines / (i + 1)); ++j)
+		for (int j = 0; j < floor (nLines_temp / (i + 1)); ++j)
 		{
 			if (blocks[j] == -9999)
 			{
@@ -199,25 +213,25 @@ BLOCKS *computeBlockAverages (BLOCKS *blockAverages, int nLines, float *inputDat
 			blockAverages[i].average += blocks[j];
 		}
 
-		blockAverages[i].average /= (float)(floor (nLines / (i + 1)));
+		blockAverages[i].average /= (double)(floor (nLines_temp / (i + 1)));
 
 		// find the global stdev/covar across blocks
-		for (int j = 0; j < floor (nLines / (i + 1)); ++j)
+		for (int j = 0; j < floor (nLines_temp / (i + 1)); ++j)
 		{
 			blockAverages[i].covariance += ((blocks[j] - blockAverages[i].average) * (blocks[j] - blockAverages[i].average));
 		}
 
-		blockAverages[i].covariance /= (float)(floor (nLines / (i + 1)) - 1);
+		blockAverages[i].covariance /= (double)(floor (nLines_temp / (i + 1)) - 1);
 		blockAverages[i].stdev = sqrt (blockAverages[i].covariance);
-		blockAverages[i].stderr = blockAverages[i].stdev / sqrt ((float)((floor (nLines / (i + 1)))));
+		blockAverages[i].stderr = blockAverages[i].stdev / sqrt ((double)((floor (nLines / (i + 1)))));
 	}
 
 	return blockAverages;
 }
 
-void printBlockDistribution (float *blocks, int nBlocks, int blockSize, int nBins)
+void printBlockDistribution (double *blocks, int nBlocks, int blockSize, int nBins, double *inputData, int nLines)
 {
-	float min, max, binWidth;
+	double min, max, binWidth;
 	// int nBins = 10; // default as 20.
 	BOUNDARY *bin;
 	bin = (BOUNDARY *) malloc (nBins * sizeof (BOUNDARY));
@@ -230,20 +244,20 @@ void printBlockDistribution (float *blocks, int nBlocks, int blockSize, int nBin
 	output = fopen (distFileString, "w");
 
 	// calculating the min and max
-	for (int i = 0; i < nBlocks; ++i)
+	for (int i = 0; i < nLines; ++i)
 	{
 		if (i == 0) {
-			min = blocks[i];
-			max = blocks[i]; }
+			min = inputData[i];
+			max = inputData[i]; }
 		else {
-			if (blocks[i] < min) {
-				min = blocks[i]; }
-			else if (blocks[i] > max) {
-				max = blocks[i]; }
+			if (inputData[i] < min) {
+				min = inputData[i]; }
+			else if (inputData[i] > max) {
+				max = inputData[i]; }
 		}
 	}
 
-	binWidth = (max - min) / (float)nBins;
+	binWidth = (max - min) / (double)nBins;
 
 	// assigning lows and highs in boundary
 	for (int i = 0; i < nBins; ++i)
@@ -272,24 +286,34 @@ void printBlockDistribution (float *blocks, int nBlocks, int blockSize, int nBin
 
 	for (int i = 0; i < nBins; ++i)
 	{
-		fprintf(output, "%f %f %d\n", bin[i].low, bin[i].high, bin[i].count);
+		fprintf(output, "%lf %lf %d\n", bin[i].low, bin[i].high, bin[i].count);
 	}
 
 	free (distFileString);
 	fclose (output);
 }
 
-BLOCKS *computeBlockAverages2 (BLOCKS *blockAverages, int nLines, float *inputData, int nBins_distribution)
+BLOCKS *computeBlockAverages2 (BLOCKS *blockAverages, int nLines, double *inputData, int nBins_distribution)
 {
+	printf ("\nComputing averages 2...\n");
 	int currentEntry = 0, nEntries = 0;
-	float *blocks;
-	blocks = (float *) malloc (nLines * sizeof (blocks));
-	int denomVariance = 0;
 
-	float *covariance;
-	covariance = (float *) malloc (nLines * sizeof (float));
+	int nLines_temp = 0;
 
 	for (int i = 0; i < nLines; ++i)
+	{
+		if (inputData[i] > 0) {
+			nLines_temp++; }
+	}
+
+	double *blocks;
+	blocks = (double *) malloc (nLines_temp * sizeof (blocks));
+	int denomVariance = 0;
+
+	double *covariance;
+	covariance = (double *) malloc (nLines_temp * sizeof (double));
+
+	for (int i = 0; i < nLines_temp; ++i)
 	{
 		if (inputData[i] > -9999) {
 			nEntries++; }
@@ -297,36 +321,41 @@ BLOCKS *computeBlockAverages2 (BLOCKS *blockAverages, int nLines, float *inputDa
 
 	// 'i' is to iterate through various block sizes
 	// 'i + 1' is the block size
-	for (int i = 0; i < floor (nLines / 2); ++i)
+	for (int i = 0; i < (int)floor (nLines_temp / 2); ++i)
 	{
+		printf ("computing for block %d/%d...                     \r", i, (int)floor (nLines_temp / 2));
 		// reset the local covariance array
-		for (int j = 0; j < nLines; ++j)
+		for (int j = 0; j < nLines_temp; ++j)
 		{
 			covariance[j] = 0;
 		}
 
-		blocks = initializeBlockValues (blocks, nLines);
+		blocks = initializeBlockValues (blocks, nLines_temp);
 		currentEntry = 0;
 
 		// going through the blocks
 		// summing the items in the blocks
-		// number of blocks = floor (nLines / (i + 1))
-		for (int j = 0; j < floor (nLines / (i + 1)); ++j)
+		// number of blocks = floor (nLines_temp / (i + 1))
+		for (int j = 0; j < floor (nLines_temp / (i + 1)); ++j)
 		{
 			// do averaging within the block
 			// (i + 1) is the block size
 			blocks[j] = 0;
 			for (int k = 0; k < (i + 1); ++k)
 			{
-				blocks[j] += inputData[currentEntry];
+				if (inputData[currentEntry] > 0)
+				{
+					blocks[j] += inputData[currentEntry];
+				}
+				
 				currentEntry++;
 			}
 		}
 
 		// going through the blocks
 		// finding local averages of these blocks
-		// number of blocks = floor (nLines / (i + 1))
-		for (int j = 0; j < floor (nLines / (i + 1)); ++j)
+		// number of blocks = floor (nLines_temp / (i + 1))
+		for (int j = 0; j < floor (nLines_temp / (i + 1)); ++j)
 		{
 			blocks[j] /= (i + 1);
 
@@ -335,11 +364,14 @@ BLOCKS *computeBlockAverages2 (BLOCKS *blockAverages, int nLines, float *inputDa
 			// usleep (100000);
 		}
 
-		printBlockDistribution (blocks, floor (nLines / (i + 1)), i + 1, nBins_distribution);
+		if (nBins_distribution > 0)
+		{
+			printBlockDistribution (blocks, floor (nLines_temp / (i + 1)), i + 1, nBins_distribution, inputData, nLines_temp);
+		}
 
 		// find the local covariance within the blocks
 		currentEntry = 0;
-		for (int j = 0; j < floor (nLines / (i + 1)); ++j)
+		for (int j = 0; j < floor (nLines_temp / (i + 1)); ++j)
 		{
 			// calculate covariance within the block
 			// (i + 1) is the block size
@@ -359,7 +391,7 @@ BLOCKS *computeBlockAverages2 (BLOCKS *blockAverages, int nLines, float *inputDa
 
 		blockAverages[i].covariance = 0;
 		// find the average covariance
-		for (int j = 0; j < floor (nLines / (i + 1)); ++j)
+		for (int j = 0; j < floor (nLines_temp / (i + 1)); ++j)
 		{
 			if (covariance[j] > 0)
 			{
@@ -367,11 +399,11 @@ BLOCKS *computeBlockAverages2 (BLOCKS *blockAverages, int nLines, float *inputDa
 			}
 		}
 
-		blockAverages[i].covariance /= floor (nLines / (i + 1));
+		blockAverages[i].covariance /= floor (nLines_temp / (i + 1));
 
 		// find the global average across blocks
 		blockAverages[i].average = 0;
-		for (int j = 0; j < floor (nLines / (i + 1)); ++j)
+		for (int j = 0; j < floor (nLines_temp / (i + 1)); ++j)
 		{
 			if (blocks[j] == -9999)
 			{
@@ -382,23 +414,23 @@ BLOCKS *computeBlockAverages2 (BLOCKS *blockAverages, int nLines, float *inputDa
 			blockAverages[i].average += blocks[j];
 		}
 
-		blockAverages[i].average /= (float)(floor (nLines / (i + 1)));
+		blockAverages[i].average /= (double)(floor (nLines_temp / (i + 1)));
 
 		// find the global stdev/covar across blocks
-/*		for (int j = 0; j < floor (nLines / (i + 1)); ++j)
+/*		for (int j = 0; j < floor (nLines_temp / (i + 1)); ++j)
 		{
 			blockAverages[i].covariance += ((blocks[j] - blockAverages[i].average) * (blocks[j] - blockAverages[i].average));
 		}
 */
-/*		blockAverages[i].covariance /= (float)(floor (nLines / (i + 1)) - 1);*/
+/*		blockAverages[i].covariance /= (double)(floor (nLines_temp / (i + 1)) - 1);*/
 		blockAverages[i].stdev = sqrt (blockAverages[i].covariance);
-		blockAverages[i].stderr = blockAverages[i].stdev / sqrt ((float)((floor (nLines / (i + 1)))));
+		blockAverages[i].stderr = blockAverages[i].stdev / sqrt ((double)((floor (nLines_temp / (i + 1)))));
 	}
 
 	return blockAverages;
 }
 
-float *saveInputData (float *inputData, int nLines, FILE *file_data, int requiredColumn)
+double *saveInputData (double *inputData, int nLines, FILE *file_data, int requiredColumn)
 {
 	char lineString[2000];
 	rewind (file_data);
@@ -411,26 +443,26 @@ float *saveInputData (float *inputData, int nLines, FILE *file_data, int require
 		{
 			switch (requiredColumn)
 			{
-				case 1: sscanf (lineString, "%f\n", &inputData[i]); break;
-				case 2: sscanf (lineString, "%*f %f\n", &inputData[i]); break;
-				case 3: sscanf (lineString, "%*f %*f %f\n", &inputData[i]); break;
-				case 4: sscanf (lineString, "%*f %*f %*f %f\n", &inputData[i]); break;
-				case 5: sscanf (lineString, "%*f %*f %*f %*f %f\n", &inputData[i]); break;
-				case 6: sscanf (lineString, "%*f %*f %*f %*f %*f %f\n", &inputData[i]); break;
-				case 7: sscanf (lineString, "%*f %*f %*f %*f %*f %*f %f\n", &inputData[i]); break;
-				case 8: sscanf (lineString, "%*f %*f %*f %*f %*f %*f %*f %f\n", &inputData[i]); break;
-				case 9: sscanf (lineString, "%*f %*f %*f %*f %*f %*f %*f %*f %f\n", &inputData[i]); break;
-				case 10: sscanf (lineString, "%*f %*f %*f %*f %*f %*f %*f %*f %*f %f\n", &inputData[i]); break;
-				case 11: sscanf (lineString, "%*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %f\n", &inputData[i]); break;
-				case 12: sscanf (lineString, "%*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %f\n", &inputData[i]); break;
-				case 13: sscanf (lineString, "%*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %f\n", &inputData[i]); break;
-				case 14: sscanf (lineString, "%*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %f\n", &inputData[i]); break;
-				case 15: sscanf (lineString, "%*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %f\n", &inputData[i]); break;
-				case 16: sscanf (lineString, "%*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %f\n", &inputData[i]); break;
-				case 17: sscanf (lineString, "%*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %f\n", &inputData[i]); break;
-				case 18: sscanf (lineString, "%*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %f\n", &inputData[i]); break;
-				case 19: sscanf (lineString, "%*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %f\n", &inputData[i]); break;
-				case 20: sscanf (lineString, "%*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %f\n", &inputData[i]); break;
+				case 1: sscanf (lineString, "%lf\n", &inputData[i]); break;
+				case 2: sscanf (lineString, "%*f %lf\n", &inputData[i]); break;
+				case 3: sscanf (lineString, "%*f %*f %lf\n", &inputData[i]); break;
+				case 4: sscanf (lineString, "%*f %*f %*f %lf\n", &inputData[i]); break;
+				case 5: sscanf (lineString, "%*f %*f %*f %*f %lf\n", &inputData[i]); break;
+				case 6: sscanf (lineString, "%*f %*f %*f %*f %*f %lf\n", &inputData[i]); break;
+				case 7: sscanf (lineString, "%*f %*f %*f %*f %*f %*f %lf\n", &inputData[i]); break;
+				case 8: sscanf (lineString, "%*f %*f %*f %*f %*f %*f %*f %lf\n", &inputData[i]); break;
+				case 9: sscanf (lineString, "%*f %*f %*f %*f %*f %*f %*f %*f %lf\n", &inputData[i]); break;
+				case 10: sscanf (lineString, "%*f %*f %*f %*f %*f %*f %*f %*f %*f %lf\n", &inputData[i]); break;
+				case 11: sscanf (lineString, "%*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %lf\n", &inputData[i]); break;
+				case 12: sscanf (lineString, "%*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %lf\n", &inputData[i]); break;
+				case 13: sscanf (lineString, "%*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %lf\n", &inputData[i]); break;
+				case 14: sscanf (lineString, "%*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %lf\n", &inputData[i]); break;
+				case 15: sscanf (lineString, "%*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %lf\n", &inputData[i]); break;
+				case 16: sscanf (lineString, "%*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %lf\n", &inputData[i]); break;
+				case 17: sscanf (lineString, "%*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %lf\n", &inputData[i]); break;
+				case 18: sscanf (lineString, "%*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %lf\n", &inputData[i]); break;
+				case 19: sscanf (lineString, "%*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %lf\n", &inputData[i]); break;
+				case 20: sscanf (lineString, "%*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %*f %lf\n", &inputData[i]); break;
 			}
 		}
 	}
@@ -442,14 +474,14 @@ void printBlockAverageStats (FILE *file_output, BLOCKS *blockAverages, int nLine
 {
 	for (int i = 0; i < floor (nLines / 2); ++i)
 	{
-		fprintf(file_output, "%d %f %f %f %f\n", i + 1, blockAverages[i].average, blockAverages[i].stdev, blockAverages[i].covariance*100000, blockAverages[i].stderr);
+		fprintf(file_output, "%d %lf %lf %lf %lf\n", i + 1, blockAverages[i].average, blockAverages[i].stdev, blockAverages[i].covariance*100000, blockAverages[i].stderr);
 	}
 }
 
 int findOptimumBlock (BLOCKS *blockAverages, int nLines)
 {
 	int firstInstance = 0;
-	int nInstances = (int)(ceil ((float)nLines * (-0.3)));
+	int nInstances = (int)(ceil ((double)nLines * (-0.3)));
 
 	for (int i = 1; i < floor (nLines / 2); ++i)
 	{
@@ -477,29 +509,33 @@ int main(int argc, char const *argv[])
 	}
 
 	system ("rm -rf blockDistributions");
-	system ("mkdir blockDistributions");
 
 	FILE *file_data, *file_output, *file_output2;
 	file_data = fopen (argv[1], "r");
 
 	int nLines = countNLines (argv[1], nLines), requiredColumn = atoi (argv[2]), nDataPoints = atoi (argv[3]), nBins_distribution = atoi (argv[4]);
 
+	if (nBins_distribution > 0)
+	{
+		system ("mkdir blockDistributions");
+	}
+
 	char *outputFileString;
 	outputFileString = (char *) malloc (500 * sizeof (char));
 
-	snprintf (outputFileString, 500, "average_n%d_c%d_1.block", nDataPoints, requiredColumn);
+	snprintf (outputFileString, 500, "average_%s_n%d_c%d_1.block", argv[1], nDataPoints, requiredColumn);
 	file_output = fopen (outputFileString, "w");
-	snprintf (outputFileString, 500, "average_n%d_c%d_2.block", nDataPoints, requiredColumn);
+	snprintf (outputFileString, 500, "average_%s_n%d_c%d_2.block", argv[1], nDataPoints, requiredColumn);
 	file_output2 = fopen (outputFileString, "w");
 
-	float *inputData;
+	double *inputData;
 
 	if (nDataPoints < nLines)
 	{
 		nLines = nDataPoints;
 	}
 
-	inputData = (float *) malloc (nLines * sizeof (float));
+	inputData = (double *) malloc (nLines * sizeof (double));
 	inputData = saveInputData (inputData, nLines, file_data, requiredColumn);
 
 	BLOCKS *blockAverages, *blockAverages2;
@@ -514,7 +550,7 @@ int main(int argc, char const *argv[])
 	printBlockAverageStats (file_output2, blockAverages2, nLines);
 	int optimumBlockSize = findOptimumBlock (blockAverages, nLines);
 
-	printf("Optimum block size: %d\nAverage: %f\nCovariance: %f\nStandard deviation: %f\nStandard error: %f\n", optimumBlockSize, blockAverages[optimumBlockSize - 1].average, blockAverages[optimumBlockSize - 1].covariance, blockAverages[optimumBlockSize - 1].stdev, blockAverages[optimumBlockSize - 1].stderr);
+	printf("Optimum block size: %d\nAverage: %lf\nCovariance: %lf\nStandard deviation: %lf\nStandard error: %lf\n", optimumBlockSize, blockAverages[optimumBlockSize - 1].average, blockAverages[optimumBlockSize - 1].covariance, blockAverages[optimumBlockSize - 1].stdev, blockAverages[optimumBlockSize - 1].stderr);
 
 	fclose (file_data);
 	fclose (file_output);
